@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+import { Fragment, useState } from 'react';
+import SensitivityReport from './SensitivityReport';
+import type { SensitivityAnalysis } from '../types/sensitivity';
 
 interface SimplexConstraint {
   id: string;
@@ -28,6 +30,9 @@ interface SimplexResponse {
 
 export default function SimplexSolver() {
   const [numVars, setNumVars] = useState(2);
+  const [sensitivity, setSensitivity] = useState<SensitivityAnalysis | null>(null);
+  const [sensitivityLoading, setSensitivityLoading] = useState(false);
+  const [sensitivityError, setSensitivityError] = useState<string | null>(null);
   const [objectiveType, setObjectiveType] = useState<'MAX' | 'MIN'>('MAX');
   const [objectiveCoefficients, setObjectiveCoefficients] = useState<number[]>([3, 2]);
   const [constraints, setConstraints] = useState<SimplexConstraint[]>([
@@ -76,8 +81,10 @@ export default function SimplexSolver() {
     setLoading(true);
     setCurrentStepIndex(0);
     setSolution(null);
+    setSensitivity(null);
+    setSensitivityError(null);
     try {
-      const response = await fetch('http://localhost:8080/api/solve/simplex', {
+      const response = await fetch('/api/solve/simplex', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -98,6 +105,41 @@ export default function SimplexSolver() {
       alert('Failed to connect to the solver backend.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const analyzeSensitivity = async () => {
+    if (!solution) return;
+    setSensitivityLoading(true);
+    setSensitivityError(null);
+    setSensitivity(null);
+    try {
+      const response = await fetch('/api/solve/simplex/sensitivity', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          objectiveType,
+          objectiveCoefficients,
+          solverMethod,
+          constraints: constraints.map(c => ({
+            coefficients: c.coefficients,
+            operator: c.operator,
+            value: c.value
+          }))
+        }),
+      });
+      if (!response.ok) {
+        const text = await response.text();
+        setSensitivityError(text || 'Sensitivity analysis failed.');
+      } else {
+        const data: SensitivityAnalysis = await response.json();
+        setSensitivity(data);
+      }
+    } catch (error) {
+      console.error('Error running sensitivity analysis:', error);
+      setSensitivityError('Failed to connect to the backend for sensitivity analysis.');
+    } finally {
+      setSensitivityLoading(false);
     }
   };
 
@@ -201,7 +243,7 @@ export default function SimplexSolver() {
                 </select>
                 <span className="text-lg font-bold">Z =</span>
                 {objectiveCoefficients.map((c, i) => (
-                  <React.Fragment key={i}>
+                  <Fragment key={i}>
                     <input 
                       type="number" 
                       className="w-16 bg-indigo-900/50 border border-indigo-500/30 text-center text-white rounded-lg px-2 py-1.5 focus:ring-2 focus:ring-emerald-500 outline-none"
@@ -213,7 +255,7 @@ export default function SimplexSolver() {
                       }}
                     />
                     <span>x<sub>{i+1}</sub> {i < numVars - 1 ? '+' : ''}</span>
-                  </React.Fragment>
+                  </Fragment>
                 ))}
               </div>
             </div>
@@ -235,7 +277,7 @@ export default function SimplexSolver() {
                   <div key={c.id} className="flex items-center gap-3 group min-w-max">
                     <span className="text-white/50 w-6">#{index + 1}</span>
                     {c.coefficients.map((coeff, i) => (
-                      <React.Fragment key={i}>
+                      <Fragment key={i}>
                         <input 
                           type="number" 
                           className="w-14 bg-indigo-900/50 border border-indigo-500/30 text-center text-white rounded-lg px-1 py-1.5 focus:ring-2 focus:ring-emerald-500 outline-none"
@@ -247,7 +289,7 @@ export default function SimplexSolver() {
                           }}
                         />
                         <span>x<sub>{i+1}</sub> {i < numVars - 1 ? '+' : ''}</span>
-                      </React.Fragment>
+                      </Fragment>
                     ))}
                     <select 
                       className="bg-indigo-900/50 border border-indigo-500/30 text-white rounded-lg px-2 py-1.5 focus:ring-2 focus:ring-emerald-500 outline-none"
@@ -323,19 +365,39 @@ export default function SimplexSolver() {
                   <div className="mt-8 p-6 bg-gradient-to-r from-emerald-500/20 to-indigo-500/20 rounded-2xl border border-emerald-500/30">
                     <h3 className="text-xl font-bold text-emerald-400 mb-2">Final Solution ({solution.status})</h3>
                     {solution.status === 'OPTIMAL' ? (
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="text-lg">
-                          <span className="text-white/60">Optimal Z = </span>
-                          <span className="font-bold text-emerald-300">{Number(solution.optimalValue.toFixed(3))}</span>
+                      <div className="space-y-6">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="text-lg">
+                            <span className="text-white/60">Optimal Z = </span>
+                            <span className="font-bold text-emerald-300">{Number(solution.optimalValue.toFixed(3))}</span>
+                          </div>
+                          <div className="text-lg">
+                            {solution.optimalSolution.map((val, idx) => (
+                              <div key={idx}>
+                                <span className="text-white/60">x<sub>{idx+1}</sub> = </span>
+                                <span className="font-bold text-indigo-300">{Number(val.toFixed(3))}</span>
+                              </div>
+                            ))}
+                          </div>
                         </div>
-                        <div className="text-lg">
-                          {solution.optimalSolution.map((val, idx) => (
-                            <div key={idx}>
-                              <span className="text-white/60">x<sub>{idx+1}</sub> = </span>
-                              <span className="font-bold text-indigo-300">{Number(val.toFixed(3))}</span>
-                            </div>
-                          ))}
+                        <div className="flex flex-col sm:flex-row gap-3">
+                          <button
+                            onClick={analyzeSensitivity}
+                            disabled={sensitivityLoading}
+                            className="w-full sm:w-auto px-6 py-3 rounded-2xl bg-indigo-500 text-white font-semibold hover:bg-indigo-400 transition-all disabled:opacity-40"
+                          >
+                            {sensitivityLoading ? 'Analyzing...' : 'Analyze Sensitivity'}
+                          </button>
+                          <span className="text-sm text-slate-300">Run additional analysis on objective coefficients and constraints.</span>
                         </div>
+                        {sensitivity && (
+                          <div className="mt-6">
+                            <SensitivityReport analysis={sensitivity} loading={false} />
+                          </div>
+                        )}
+                        {sensitivityError && (
+                          <div className="mt-4 text-sm text-red-300">{sensitivityError}</div>
+                        )}
                       </div>
                     ) : (
                       <p className="text-red-400">The problem is Unbounded.</p>

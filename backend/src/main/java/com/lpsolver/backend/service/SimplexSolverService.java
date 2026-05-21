@@ -224,6 +224,7 @@ public class SimplexSolverService {
         }
 
         response.setSteps(steps);
+        fillFinalTableau(response, steps, colHeaders, rowHeaders, numVars, numSlacks, numArts);
 
         if ("OPTIMAL".equals(response.getStatus())) {
             List<Double> optimalSolution = new ArrayList<>(Collections.nCopies(numVars, 0.0));
@@ -237,11 +238,39 @@ public class SimplexSolverService {
             response.setOptimalSolution(optimalSolution);
             
             double optimalValue = tableau[rows - 1][cols - 1];
-            // If Big M, removing any M contribution to Z might be needed if feasible, but if feasible artificials are 0, so Z has no M.
             response.setOptimalValue(isMin ? -optimalValue : optimalValue);
         }
 
         return response;
+    }
+
+    private void fillFinalTableau(SimplexResponse response, List<SimplexStep> steps, List<String> finalColumnHeaders, List<String> finalRowHeaders, int numVars, int numSlacks, int numArts) {
+        if (steps != null && !steps.isEmpty()) {
+            SimplexStep lastStep = steps.get(steps.size() - 1);
+            response.setFinalTableau(convertTableau(lastStep.getTableau()));
+            response.setFinalColumnHeaders(lastStep.getColumnHeaders());
+            response.setFinalRowHeaders(lastStep.getRowHeaders());
+        }
+        response.setTableauMetadata(createTableauMetadata(numVars, numSlacks, numArts, finalColumnHeaders, finalRowHeaders));
+    }
+
+    private double[][] convertTableau(List<List<Double>> tableau) {
+        if (tableau == null) {
+            return new double[0][0];
+        }
+        double[][] result = new double[tableau.size()][];
+        for (int i = 0; i < tableau.size(); i++) {
+            List<Double> row = tableau.get(i);
+            result[i] = new double[row.size()];
+            for (int j = 0; j < row.size(); j++) {
+                result[i][j] = row.get(j);
+            }
+        }
+        return result;
+    }
+
+    private TableauMetadata createTableauMetadata(int numVars, int numSlacks, int numArts, List<String> colHeaders, List<String> rowHeaders) {
+        return new TableauMetadata(numVars, numSlacks, numArts, colHeaders == null ? null : new ArrayList<>(colHeaders), rowHeaders == null ? null : new ArrayList<>(rowHeaders));
     }
 
     private String solveTableau(double[][] tableau, int rows, int cols, List<String> rowHeaders, List<String> colHeaders, List<SimplexStep> steps, int iteration, String phasePrefix) {

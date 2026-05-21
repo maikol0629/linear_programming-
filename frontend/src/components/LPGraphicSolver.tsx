@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import PlotlyPlot from 'react-plotly.js';
 
 const Plot = (PlotlyPlot as any).default || PlotlyPlot;
@@ -51,7 +51,7 @@ export default function LPGraphicSolver() {
   const solveProblem = async () => {
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:8080/api/solve/graphical', {
+      const response = await fetch('/api/solve/graphical', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
