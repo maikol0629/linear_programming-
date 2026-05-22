@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import PlotlyPlot from 'react-plotly.js';
+import SensitivityReport from './SensitivityReport';
+import type { SensitivityAnalysis } from '../types/sensitivity';
 
 const Plot = (PlotlyPlot as any).default || PlotlyPlot;
 
@@ -35,6 +37,9 @@ export default function LPGraphicSolver() {
     { id: '3', x: 3, y: 1, operator: '<=', value: 24 }
   ]);
   const [solution, setSolution] = useState<SolutionResponse | null>(null);
+  const [graphicalSensitivity, setGraphicalSensitivity] = useState<SensitivityAnalysis | null>(null);
+  const [sensitivityLoading, setSensitivityLoading] = useState(false);
+  const [sensitivityError, setSensitivityError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const addConstraint = () => {
@@ -50,6 +55,8 @@ export default function LPGraphicSolver() {
 
   const solveProblem = async () => {
     setLoading(true);
+    setGraphicalSensitivity(null);
+    setSensitivityError(null);
     try {
       const response = await fetch('/api/solve/graphical', {
         method: 'POST',
@@ -70,6 +77,39 @@ export default function LPGraphicSolver() {
       alert('Failed to connect to the solver backend. Make sure it is running on port 8080.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const analyzeSensitivity = async () => {
+    if (!solution) {
+      return;
+    }
+    setSensitivityLoading(true);
+    setSensitivityError(null);
+    try {
+      const response = await fetch('/api/solve/graphical/sensitivity', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          objectiveType,
+          objX,
+          objY,
+          constraints: constraints.map(({ x, y, operator, value }) => ({ x, y, operator, value }))
+        }),
+      });
+      if (!response.ok) {
+        const message = await response.text();
+        throw new Error(message || 'Graphical sensitivity analysis failed.');
+      }
+      const data: SensitivityAnalysis = await response.json();
+      setGraphicalSensitivity(data);
+    } catch (error) {
+      console.error('Sensitivity analysis error:', error);
+      setSensitivityError(error instanceof Error ? error.message : 'Unexpected error occurred.');
+    } finally {
+      setSensitivityLoading(false);
     }
   };
 
@@ -311,6 +351,27 @@ export default function LPGraphicSolver() {
                 />
               </div>
             </div>
+
+            {solution && solution.status === 'OPTIMAL' && (
+              <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-6 shadow-2xl">
+                <button
+                  onClick={analyzeSensitivity}
+                  disabled={sensitivityLoading}
+                  className="w-full py-3 rounded-2xl bg-gradient-to-r from-emerald-500 to-sky-500 text-white font-semibold hover:from-emerald-400 hover:to-sky-400 transition-all disabled:opacity-50"
+                >
+                  {sensitivityLoading ? 'Analyzing sensitivity...' : 'Analyze Sensitivity'}
+                </button>
+                {sensitivityError && (
+                  <p className="mt-4 text-sm text-red-300">{sensitivityError}</p>
+                )}
+              </div>
+            )}
+
+            {graphicalSensitivity && (
+              <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-6 shadow-2xl">
+                <SensitivityReport analysis={graphicalSensitivity} loading={sensitivityLoading} />
+              </div>
+            )}
 
             {/* Explanation Steps */}
             {solution && (

@@ -5,6 +5,7 @@ import com.lpsolver.backend.model.SolutionResponse;
 import com.lpsolver.backend.model.SensitivityAnalysis;
 import com.lpsolver.backend.model.SimplexProblemRequest;
 import com.lpsolver.backend.model.SimplexResponse;
+import com.lpsolver.backend.service.GraphicalSensitivityAnalysisService;
 import com.lpsolver.backend.service.GraphicalSolverService;
 import com.lpsolver.backend.service.SensitivityAnalysisService;
 import com.lpsolver.backend.service.SimplexSolverService;
@@ -18,12 +19,15 @@ import org.springframework.web.bind.annotation.*;
 public class SolverController {
 
     private final GraphicalSolverService graphicalSolverService;
+    private final GraphicalSensitivityAnalysisService graphicalSensitivityAnalysisService;
     private final SimplexSolverService simplexSolverService;
     private final SensitivityAnalysisService sensitivityAnalysisService;
 
     @Autowired
-    public SolverController(GraphicalSolverService graphicalSolverService, SimplexSolverService simplexSolverService, SensitivityAnalysisService sensitivityAnalysisService) {
+    public SolverController(GraphicalSolverService graphicalSolverService, GraphicalSensitivityAnalysisService graphicalSensitivityAnalysisService,
+                            SimplexSolverService simplexSolverService, SensitivityAnalysisService sensitivityAnalysisService) {
         this.graphicalSolverService = graphicalSolverService;
+        this.graphicalSensitivityAnalysisService = graphicalSensitivityAnalysisService;
         this.simplexSolverService = simplexSolverService;
         this.sensitivityAnalysisService = sensitivityAnalysisService;
     }
@@ -51,6 +55,22 @@ public class SolverController {
             return ResponseEntity.badRequest().body(ex.getMessage());
         } catch (Exception ex) {
             return ResponseEntity.status(500).body("Error analyzing sensitivity: " + ex.getMessage());
+        }
+    }
+
+    @PostMapping("/graphical/sensitivity")
+    public ResponseEntity<?> analyzeGraphicalSensitivity(@RequestBody ProblemRequest request) {
+        try {
+            SolutionResponse graphicalResponse = graphicalSolverService.solve(request);
+            if (!"OPTIMAL".equals(graphicalResponse.getStatus())) {
+                return ResponseEntity.badRequest().body("Sensitivity analysis requires an optimal solution. Current status: " + graphicalResponse.getStatus());
+            }
+            SensitivityAnalysis analysis = graphicalSensitivityAnalysisService.analyzeSensitivity(request, graphicalResponse);
+            return ResponseEntity.ok(analysis);
+        } catch (IllegalArgumentException | IllegalStateException ex) {
+            return ResponseEntity.badRequest().body(ex.getMessage());
+        } catch (Exception ex) {
+            return ResponseEntity.status(500).body("Error analyzing graphical sensitivity: " + ex.getMessage());
         }
     }
 }
