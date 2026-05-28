@@ -74,7 +74,7 @@ export default function LPGraphicSolver() {
       setSolution(data);
     } catch (error) {
       console.error('Error solving problem:', error);
-      alert('Failed to connect to the solver backend. Make sure it is running on port 8080.');
+      alert('Error al conectar con el servidor. Asegúrese de que esté ejecutándose en el puerto 8080.');
     } finally {
       setLoading(false);
     }
@@ -101,13 +101,13 @@ export default function LPGraphicSolver() {
       });
       if (!response.ok) {
         const message = await response.text();
-        throw new Error(message || 'Graphical sensitivity analysis failed.');
+        throw new Error(message || 'El análisis de sensibilidad gráfico falló.');
       }
       const data: SensitivityAnalysis = await response.json();
       setGraphicalSensitivity(data);
     } catch (error) {
       console.error('Sensitivity analysis error:', error);
-      setSensitivityError(error instanceof Error ? error.message : 'Unexpected error occurred.');
+      setSensitivityError(error instanceof Error ? error.message : 'Ocurrió un error inesperado.');
     } finally {
       setSensitivityLoading(false);
     }
@@ -129,7 +129,7 @@ export default function LPGraphicSolver() {
           y: yValues,
           type: 'scatter',
           mode: 'lines',
-          name: `C${idx + 1}: ${c.x}x + ${c.y}y ${c.operator} ${c.value}`,
+            name: `R${idx + 1}: ${c.x}x + ${c.y}y ${c.operator} ${c.value}`,
           line: { width: 2 }
         });
       } else if (c.x !== 0) {
@@ -140,7 +140,7 @@ export default function LPGraphicSolver() {
           y: [0, xMax], // approx y range
           type: 'scatter',
           mode: 'lines',
-          name: `C${idx + 1}: ${c.x}x ${c.operator} ${c.value}`,
+          name: `R${idx + 1}: ${c.x}x ${c.operator} ${c.value}`,
           line: { width: 2 }
         });
       }
@@ -164,7 +164,7 @@ export default function LPGraphicSolver() {
         fill: 'toself',
         fillcolor: 'rgba(236, 72, 153, 0.2)', // Pink transparent
         line: { color: 'rgba(236, 72, 153, 0.5)' },
-        name: 'Feasible Region',
+        name: 'Región Factible',
         type: 'scatter',
         mode: 'lines+markers'
       });
@@ -176,9 +176,33 @@ export default function LPGraphicSolver() {
           y: [solution.optimalPoint.y],
           mode: 'markers',
           type: 'scatter',
-          name: `Optimal: (${solution.optimalPoint.x.toFixed(2)}, ${solution.optimalPoint.y.toFixed(2)}) Z=${solution.optimalValue.toFixed(2)}`,
+          name: `Óptimo: (${solution.optimalPoint.x.toFixed(2)}, ${solution.optimalPoint.y.toFixed(2)}) Z=${solution.optimalValue.toFixed(2)}`,
           marker: { size: 12, color: '#10b981', symbol: 'star' } // Emerald green star
         });
+
+        // Objective function contour line
+        const xLine = [0, xMax];
+        if (Math.abs(objY) > 1e-10) {
+          const yLine = xLine.map(x => (solution.optimalValue - objX * x) / objY);
+          data.push({
+            x: xLine,
+            y: yLine,
+            type: 'scatter',
+            mode: 'lines',
+            name: `Z = ${solution.optimalValue.toFixed(2)}`,
+            line: { width: 2, dash: 'dash', color: '#f59e0b' }
+          });
+        } else if (Math.abs(objX) > 1e-10) {
+          const xVal = solution.optimalValue / objX;
+          data.push({
+            x: [xVal, xVal],
+            y: [0, xMax],
+            type: 'scatter',
+            mode: 'lines',
+            name: `Z = ${solution.optimalValue.toFixed(2)}`,
+            line: { width: 2, dash: 'dash', color: '#f59e0b' }
+          });
+        }
       }
     }
 
@@ -193,26 +217,26 @@ export default function LPGraphicSolver() {
             OptiSolve
           </h1>
           <p className="text-xl text-purple-200/80 font-light">
-            Interactive Linear Programming Solver
+            Solucionador Interactivo de Programación Lineal
           </p>
         </header>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           {/* Input Panel */}
           <div className="lg:col-span-5 space-y-6 bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-6 shadow-2xl">
-            <h2 className="text-2xl font-semibold mb-4 text-pink-300">Problem Definition</h2>
+            <h2 className="text-2xl font-semibold mb-4 text-pink-300">Definición del Problema</h2>
             
             {/* Objective Function */}
             <div className="space-y-4 bg-black/20 p-5 rounded-2xl border border-white/5">
-              <h3 className="text-sm uppercase tracking-wider text-purple-300 font-semibold">Objective Function</h3>
+              <h3 className="text-sm uppercase tracking-wider text-purple-300 font-semibold">Función Objetivo</h3>
               <div className="flex items-center gap-4">
                 <select 
                   className="bg-purple-900/50 border border-purple-500/30 text-white rounded-xl px-4 py-2 focus:ring-2 focus:ring-pink-500 outline-none transition-all"
                   value={objectiveType}
                   onChange={(e) => setObjectiveType(e.target.value as 'MAX' | 'MIN')}
                 >
-                  <option value="MAX">Maximize</option>
-                  <option value="MIN">Minimize</option>
+                  <option value="MAX">Maximizar</option>
+                  <option value="MIN">Minimizar</option>
                 </select>
                 <span className="text-xl font-bold">Z =</span>
                 <input 
@@ -235,12 +259,12 @@ export default function LPGraphicSolver() {
             {/* Constraints */}
             <div className="space-y-4 bg-black/20 p-5 rounded-2xl border border-white/5">
               <div className="flex justify-between items-center">
-                <h3 className="text-sm uppercase tracking-wider text-purple-300 font-semibold">Constraints</h3>
+                <h3 className="text-sm uppercase tracking-wider text-purple-300 font-semibold">Restricciones</h3>
                 <button 
                   onClick={addConstraint}
                   className="bg-indigo-500/20 hover:bg-indigo-500/40 text-indigo-300 border border-indigo-500/30 rounded-full px-3 py-1 text-sm transition-all shadow-lg hover:shadow-indigo-500/20"
                 >
-                  + Add
+                  + Agregar
                 </button>
               </div>
               
@@ -302,7 +326,7 @@ export default function LPGraphicSolver() {
                   </div>
                 ))}
                 <div className="text-white/60 text-sm mt-4 pl-9">
-                  x, y &ge; 0 (Implicit)
+                  x, y &ge; 0 (Implícito)
                 </div>
               </div>
             </div>
@@ -312,7 +336,7 @@ export default function LPGraphicSolver() {
               disabled={loading}
               className="w-full py-4 rounded-2xl bg-gradient-to-r from-pink-500 to-indigo-500 text-white font-bold text-lg hover:from-pink-400 hover:to-indigo-400 transition-all shadow-[0_0_30px_-5px_rgba(236,72,153,0.5)] hover:shadow-[0_0_40px_0px_rgba(236,72,153,0.6)] disabled:opacity-50"
             >
-              {loading ? 'Solving...' : 'Solve Problem ✨'}
+              {loading ? 'Resolviendo...' : 'Resolver Problema ✨'}
             </button>
           </div>
 
@@ -359,7 +383,7 @@ export default function LPGraphicSolver() {
                   disabled={sensitivityLoading}
                   className="w-full py-3 rounded-2xl bg-gradient-to-r from-emerald-500 to-sky-500 text-white font-semibold hover:from-emerald-400 hover:to-sky-400 transition-all disabled:opacity-50"
                 >
-                  {sensitivityLoading ? 'Analyzing sensitivity...' : 'Analyze Sensitivity'}
+                  {sensitivityLoading ? 'Analizando sensibilidad...' : 'Analizar Sensibilidad'}
                 </button>
                 {sensitivityError && (
                   <p className="mt-4 text-sm text-red-300">{sensitivityError}</p>
@@ -377,10 +401,10 @@ export default function LPGraphicSolver() {
             {solution && (
               <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-6 shadow-2xl animate-fade-in-up">
                 <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-xl font-semibold text-indigo-300">Resolution Status: <span className={solution.status === 'OPTIMAL' ? 'text-emerald-400' : 'text-red-400'}>{solution.status}</span></h2>
+                  <h2 className="text-xl font-semibold text-indigo-300">Estado de Resolución: <span className={solution.status === 'OPTIMAL' ? 'text-emerald-400' : 'text-red-400'}>{solution.status === 'OPTIMAL' ? 'ÓPTIMO' : solution.status === 'INFEASIBLE' ? 'INFACTIBLE' : solution.status}</span></h2>
                   {solution.optimalPoint && (
                     <div className="bg-emerald-500/20 border border-emerald-500/50 px-4 py-2 rounded-xl text-emerald-300 font-bold">
-                      Optimal Z: {solution.optimalValue.toFixed(2)}
+                      Z Óptimo: {solution.optimalValue.toFixed(2)}
                     </div>
                   )}
                 </div>
@@ -388,7 +412,7 @@ export default function LPGraphicSolver() {
                   {solution.steps.map((step, idx) => (
                     <div key={idx} className={`bg-black/20 p-4 rounded-xl border-l-4 relative overflow-hidden group ${idx % 2 === 0 ? 'border-pink-500' : 'border-indigo-500'}`}>
                       <div className={`absolute inset-0 bg-gradient-to-r opacity-0 group-hover:opacity-100 transition-opacity ${idx % 2 === 0 ? 'from-pink-500/10' : 'from-indigo-500/10'} to-transparent`}></div>
-                      <h4 className={`font-bold mb-1 ${idx % 2 === 0 ? 'text-pink-300' : 'text-indigo-300'}`}>Step {idx + 1}</h4>
+                      <h4 className={`font-bold mb-1 ${idx % 2 === 0 ? 'text-pink-300' : 'text-indigo-300'}`}>Paso {idx + 1}</h4>
                       <p className="text-white/80 text-sm">{step}</p>
                     </div>
                   ))}

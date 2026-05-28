@@ -18,7 +18,7 @@ function App() {
                 : 'text-white/60 hover:text-white hover:bg-white/5'
             }`}
           >
-            Graphical Method (2D)
+            Método Gráfico (2D)
           </button>
           <button
             onClick={() => setActiveTab('simplex')}
@@ -28,7 +28,7 @@ function App() {
                 : 'text-white/60 hover:text-white hover:bg-white/5'
             }`}
           >
-            Simplex Method (nD)
+            Método Simplex (nD)
           </button>
         </div>
       </nav>

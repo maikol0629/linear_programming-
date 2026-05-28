@@ -94,7 +94,7 @@ public class SimplexSolverService {
 
         if (numArts > 0 && !useBigM) {
             // TWO PHASE
-            steps.add(createStep(iteration, "Phase I: Setting up artificial objective function.", tableau, rowHeaders, colHeaders, null, null));
+            steps.add(createStep(iteration, "Fase I: Configurando función objetivo artificial.", tableau, rowHeaders, colHeaders, null, null));
             
             for (int j = 0; j < cols; j++) tableau[rows - 1][j] = 0;
             for (int i = 0; i < numConstraints; i++) {
@@ -109,7 +109,7 @@ public class SimplexSolverService {
                     for (int j = 0; j < cols; j++) tableau[rows - 1][j] -= tableau[i][j];
                 }
             }
-            steps.add(createStep(++iteration, "Phase I: Row reduced Z row for basic artificial variables.", tableau, rowHeaders, colHeaders, null, null));
+            steps.add(createStep(++iteration, "Fase I: Fila Z reducida para variables artificiales básicas.", tableau, rowHeaders, colHeaders, null, null));
 
             String res = solveTableau(tableau, rows, cols, rowHeaders, colHeaders, steps, iteration, "Phase I");
             if (res.equals("UNBOUNDED")) {
@@ -122,12 +122,12 @@ public class SimplexSolverService {
             
             if (Math.abs(tableau[rows - 1][cols - 1]) > EPSILON) {
                 response.setStatus("INFEASIBLE");
-                steps.add(createStep(++iteration, "Phase I optimal Z != 0. The problem is INFEASIBLE.", tableau, rowHeaders, colHeaders, null, null));
+                steps.add(createStep(++iteration, "Fase I: Z óptimo != 0. El problema es INFACTIBLE.", tableau, rowHeaders, colHeaders, null, null));
                 response.setSteps(steps);
                 return response;
             }
             
-            steps.add(createStep(++iteration, "Phase I completed successfully. Removing artificial variables.", tableau, rowHeaders, colHeaders, null, null));
+            steps.add(createStep(++iteration, "Fase I completada exitosamente. Eliminando variables artificiales.", tableau, rowHeaders, colHeaders, null, null));
             
             List<String> newColHeaders = new ArrayList<>();
             List<Integer> keepCols = new ArrayList<>();
@@ -165,13 +165,13 @@ public class SimplexSolverService {
                 }
             }
             
-            steps.add(createStep(++iteration, "Phase II: Initial Tableau setup with original objective.", tableau, rowHeaders, colHeaders, null, null));
+            steps.add(createStep(++iteration, "Fase II: Configuración inicial del tablero con objetivo original.", tableau, rowHeaders, colHeaders, null, null));
             res = solveTableau(tableau, rows, cols, rowHeaders, colHeaders, steps, iteration, "Phase II");
             response.setStatus(res);
             
         } else if (numArts > 0 && useBigM) {
             // BIG M
-            steps.add(createStep(iteration, "Big M Method: Setting up initial objective with M penalties.", tableau, rowHeaders, colHeaders, null, null));
+            steps.add(createStep(iteration, "Método Gran M: Configurando objetivo inicial con penalizaciones M.", tableau, rowHeaders, colHeaders, null, null));
             
             for (int j = 0; j < cols; j++) tableau[rows - 1][j] = 0;
             for (int j = 0; j < numVars; j++) {
@@ -192,7 +192,7 @@ public class SimplexSolverService {
                     for (int j = 0; j < cols; j++) tableau[rows - 1][j] -= mCoeff * tableau[i][j];
                 }
             }
-            steps.add(createStep(++iteration, "Big M Method: Row reduced Z row.", tableau, rowHeaders, colHeaders, null, null));
+            steps.add(createStep(++iteration, "Método Gran M: Fila Z reducida.", tableau, rowHeaders, colHeaders, null, null));
 
             String res = solveTableau(tableau, rows, cols, rowHeaders, colHeaders, steps, iteration, "Big M");
             response.setStatus(res);
@@ -207,7 +207,7 @@ public class SimplexSolverService {
                 }
                 if (!feasible) {
                     response.setStatus("INFEASIBLE");
-                    steps.add(createStep(++iteration, "Big M optimal Z contains artificial variables. Problem INFEASIBLE.", tableau, rowHeaders, colHeaders, null, null));
+                    steps.add(createStep(++iteration, "Gran M: Z óptimo contiene variables artificiales. Problema INFACTIBLE.", tableau, rowHeaders, colHeaders, null, null));
                 }
             }
             
@@ -218,7 +218,7 @@ public class SimplexSolverService {
                 double c = request.getObjectiveCoefficients().get(j);
                 tableau[rows - 1][j] = isMin ? c : -c;
             }
-            steps.add(createStep(iteration, "Standard Simplex: Initial Tableau setup.", tableau, rowHeaders, colHeaders, null, null));
+            steps.add(createStep(iteration, "Simplex Estándar: Configuración inicial del tablero.", tableau, rowHeaders, colHeaders, null, null));
             String res = solveTableau(tableau, rows, cols, rowHeaders, colHeaders, steps, iteration, "Simplex");
             response.setStatus(res);
         }
@@ -277,20 +277,20 @@ public class SimplexSolverService {
         while (true) {
             int pivotCol = getPivotColumn(tableau, rows, cols);
             if (pivotCol == -1) {
-                steps.add(createStep(++iteration, phasePrefix + ": Optimal reached.", tableau, rowHeaders, colHeaders, null, null));
+                steps.add(createStep(++iteration, phasePrefix + ": Óptimo alcanzado.", tableau, rowHeaders, colHeaders, null, null));
                 return "OPTIMAL";
             }
 
             int pivotRow = getPivotRow(tableau, rows, cols, pivotCol);
             if (pivotRow == -1) {
-                steps.add(createStep(++iteration, phasePrefix + ": Problem is unbounded.", tableau, rowHeaders, colHeaders, null, null));
+                steps.add(createStep(++iteration, phasePrefix + ": El problema es no acotado.", tableau, rowHeaders, colHeaders, null, null));
                 return "UNBOUNDED";
             }
 
             String entering = colHeaders.get(pivotCol);
             String leaving = rowHeaders.get(pivotRow);
 
-            SimplexStep prePivotStep = createStep(++iteration, phasePrefix + " Pivot: Entering " + entering + ", Leaving " + leaving, tableau, rowHeaders, colHeaders, pivotRow, pivotCol);
+            SimplexStep prePivotStep = createStep(++iteration, phasePrefix + " Pivote: Entra " + entering + ", Sale " + leaving, tableau, rowHeaders, colHeaders, pivotRow, pivotCol);
             prePivotStep.setEnteringVariable(entering);
             prePivotStep.setLeavingVariable(leaving);
             steps.add(prePivotStep);

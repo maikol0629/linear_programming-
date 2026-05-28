@@ -22,13 +22,13 @@ public class GraphicalSensitivityAnalysisService {
 
     public SensitivityAnalysis analyzeSensitivity(ProblemRequest request, SolutionResponse solution) {
         if (request == null) {
-            throw new IllegalArgumentException("Problem request is required for graphical sensitivity analysis.");
+            throw new IllegalArgumentException("Se requiere una solicitud de problema para el análisis de sensibilidad gráfico.");
         }
         if (solution == null) {
-            throw new IllegalArgumentException("Graphical solution is required for sensitivity analysis.");
+            throw new IllegalArgumentException("Se requiere una solución gráfica para el análisis de sensibilidad.");
         }
         if (!"OPTIMAL".equals(solution.getStatus())) {
-            throw new IllegalStateException("Sensitivity analysis requires an OPTIMAL graphical solution. Current status: " + solution.getStatus());
+            throw new IllegalStateException("El análisis de sensibilidad requiere una solución gráfica ÓPTIMA. Estado actual: " + solution.getStatus());
         }
 
         SensitivityAnalysis analysis = new SensitivityAnalysis();
@@ -111,7 +111,7 @@ public class GraphicalSensitivityAnalysisService {
         range.setMaxRange(maxRange);
         range.setAllowedDecrease(Double.isInfinite(minRange) ? Double.POSITIVE_INFINITY : currentValue - minRange);
         range.setAllowedIncrease(Double.isInfinite(maxRange) ? Double.POSITIVE_INFINITY : maxRange - currentValue);
-        range.setInterpretation("Allowed change for coefficient " + variableName + " while the current optimal vertex remains best.");
+        range.setInterpretation("Cambio permitido para el coeficiente " + variableName + " mientras el vértice óptimo actual se mantenga como el mejor.");
         return range;
     }
 
@@ -148,7 +148,7 @@ public class GraphicalSensitivityAnalysisService {
         for (int i = 0; i < request.getConstraints().size(); i++) {
             ConstraintRequest constraint = request.getConstraints().get(i);
             double price = 0.0;
-            String name = "Constraint " + (i + 1) + " (" + constraint.getOperator() + " " + constraint.getValue() + ")";
+            String name = "Restricción " + (i + 1) + " (" + constraint.getOperator() + " " + constraint.getValue() + ")";
             if (first != null && second != null && first.index == i) {
                 price = multipliers[0];
             } else if (first != null && second != null && second.index == i) {
@@ -165,12 +165,12 @@ public class GraphicalSensitivityAnalysisService {
 
     private String buildShadowInterpretation(double price, String objectiveType) {
         if (almostEqual(price, 0.0)) {
-            return "Shadow price is approximately zero: the constraint is not binding in the local optimal region.";
+            return "El precio sombra es aproximadamente cero: la restricción no está activa en la región óptima local.";
         }
         if (price > 0) {
-            return "A small loosening of this constraint changes the objective by approximately " + String.format("%.4f", price) + " units.";
+            return "Un pequeño aflojamiento de esta restricción cambia el objetivo en aproximadamente " + String.format("%.4f", price) + " unidades.";
         }
-        return "A small loosening of this constraint changes the objective by approximately -" + String.format("%.4f", Math.abs(price)) + " units.";
+        return "Un pequeño aflojamiento de esta restricción cambia el objetivo en aproximadamente -" + String.format("%.4f", Math.abs(price)) + " unidades.";
     }
 
     private double[] solveDualMultipliers(ConstraintRequest c1, ConstraintRequest c2, double objX, double objY) {
@@ -195,9 +195,9 @@ public class GraphicalSensitivityAnalysisService {
 
         for (int i = 0; i < request.getConstraints().size(); i++) {
             ConstraintRequest constraint = request.getConstraints().get(i);
-            RHSRange rhsRange = new RHSRange(i, "Constraint " + (i + 1), constraint.getValue());
+            RHSRange rhsRange = new RHSRange(i, "Restricción " + (i + 1), constraint.getValue());
             rhsRange.setShadowPrice(0.0);
-            rhsRange.setInterpretation("Calculated sensitivity range for the right-hand side of this constraint.");
+            rhsRange.setInterpretation("Rango de sensibilidad calculado para el lado derecho de esta restricción.");
             if ("=".equals(constraint.getOperator())) {
                 rhsRange.setMinRange(constraint.getValue());
                 rhsRange.setMaxRange(constraint.getValue());
@@ -303,16 +303,16 @@ public class GraphicalSensitivityAnalysisService {
         if (request.getConstraints() != null) {
             for (int i = 0; i < request.getConstraints().size(); i++) {
                 ConstraintRequest constraint = request.getConstraints().get(i);
-                wrappers.add(new ConstraintWrapper(i, "Constraint " + (i + 1) + " (" + constraint.getOperator() + " " + constraint.getValue() + ")", constraint, false));
+                wrappers.add(new ConstraintWrapper(i, "Restricción " + (i + 1) + " (" + constraint.getOperator() + " " + constraint.getValue() + ")", constraint, false));
             }
         }
         ConstraintRequest xGte0 = new ConstraintRequest();
         xGte0.setX(1); xGte0.setY(0); xGte0.setOperator(">="); xGte0.setValue(0);
-        wrappers.add(new ConstraintWrapper(wrappers.size(), "x >= 0", xGte0, true));
+        wrappers.add(new ConstraintWrapper(wrappers.size(), "x ≥ 0", xGte0, true));
 
         ConstraintRequest yGte0 = new ConstraintRequest();
         yGte0.setX(0); yGte0.setY(1); yGte0.setOperator(">="); yGte0.setValue(0);
-        wrappers.add(new ConstraintWrapper(wrappers.size(), "y >= 0", yGte0, true));
+        wrappers.add(new ConstraintWrapper(wrappers.size(), "y ≥ 0", yGte0, true));
 
         return wrappers;
     }
@@ -370,22 +370,22 @@ public class GraphicalSensitivityAnalysisService {
             }
         }
         if (activeCount > 2) {
-            return new DegeneracyWarning(true, List.of("Multiple active constraints at the optimal vertex"), "Degenerate graphical solution detected because more than two constraints are active at the optimal point.", "WARNING");
+            return new DegeneracyWarning(true, List.of("Múltiples restricciones activas en el vértice óptimo"), "Solución gráfica degenerada detectada porque hay más de dos restricciones activas en el punto óptimo.", "WARNING");
         }
-        return new DegeneracyWarning(false, new ArrayList<>(), "No degeneracy detected in the graphical optimum.", "INFO");
+        return new DegeneracyWarning(false, new ArrayList<>(), "No se detectó degeneración en el óptimo gráfico.", "INFO");
     }
 
     private String generateAnalysisNotes(SensitivityAnalysis analysis) {
         StringBuilder notes = new StringBuilder();
-        notes.append("Graphical sensitivity analysis summary:\n");
-        notes.append("- Objective coefficient ranges are computed fixing the other coefficient.\n");
-        notes.append("- RHS ranges are based on maintaining the current optimal vertex while the constraint boundary moves.\n");
+        notes.append("Resumen del análisis de sensibilidad gráfico:\n");
+        notes.append("- Los rangos de coeficientes objetivo se calculan fijando el otro coeficiente.\n");
+        notes.append("- Los rangos RHS se basan en mantener el vértice óptimo actual mientras se mueve el límite de la restricción.\n");
         if (analysis.getShadowPrices() != null) {
             long binding = analysis.getShadowPrices().stream().filter(sp -> Math.abs(sp.getPrice()) > EPSILON).count();
-            notes.append("- ").append(binding).append(" binding constraint(s) contribute non-zero shadow prices.\n");
+            notes.append("- ").append(binding).append(" restricción(es) activa(s) contribuyen con precios sombra no nulos.\n");
         }
         if (analysis.getDegeneracyWarning() != null && analysis.getDegeneracyWarning().isDegenerateSolution()) {
-            notes.append("- WARNING: Degenerate solution detected. Some ranges may be less stable.\n");
+            notes.append("- ADVERTENCIA: Solución degenerada detectada. Algunos rangos pueden ser menos estables.\n");
         }
         return notes.toString();
     }

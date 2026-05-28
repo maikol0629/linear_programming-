@@ -17,7 +17,7 @@ public class GraphicalSolverService {
     public SolutionResponse solve(ProblemRequest request) {
         SolutionResponse response = new SolutionResponse();
         List<String> steps = new ArrayList<>();
-        steps.add("Started solving using Graphical Method.");
+        steps.add("Resolviendo usando el Método Gráfico.");
 
         List<ConstraintRequest> allConstraints = new ArrayList<>(request.getConstraints());
         // Implicit non-negativity constraints x >= 0, y >= 0
@@ -26,10 +26,10 @@ public class GraphicalSolverService {
         allConstraints.add(xGte0);
         allConstraints.add(yGte0);
         
-        steps.add("Added implicit non-negativity constraints: x >= 0, y >= 0.");
+        steps.add("Restricciones implícitas de no negatividad agregadas: x >= 0, y >= 0.");
 
         List<Point> intersections = findIntersections(allConstraints);
-        steps.add("Found " + intersections.size() + " intersection points between all constraint boundaries.");
+        steps.add("Se encontraron " + intersections.size() + " puntos de intersección entre todas las restricciones.");
 
         List<Point> feasibleVertices = new ArrayList<>();
         for (Point p : intersections) {
@@ -39,12 +39,12 @@ public class GraphicalSolverService {
                 }
             }
         }
-        steps.add("Filtered intersections to find " + feasibleVertices.size() + " feasible vertices.");
+        steps.add("Intersecciones filtradas: " + feasibleVertices.size() + " vértices factibles.");
         response.setFeasibleVertices(feasibleVertices);
 
         if (feasibleVertices.isEmpty()) {
             response.setStatus("INFEASIBLE");
-            steps.add("No feasible region found. The problem is INFEASIBLE.");
+            steps.add("No se encontró región factible. El problema es INFACTIBLE.");
             response.setSteps(steps);
             return response;
         }
@@ -73,8 +73,8 @@ public class GraphicalSolverService {
         response.setOptimalPoint(bestPoint);
         response.setOptimalValue(bestValue);
         response.setStatus("OPTIMAL"); // simplified bounded check for now
-        steps.add("Evaluated objective function Z = " + request.getObjX() + "x + " + request.getObjY() + "y at all feasible vertices.");
-        steps.add("Found optimal solution Z = " + bestValue + " at point (" + bestPoint.getX() + ", " + bestPoint.getY() + ").");
+        steps.add("Función objetivo Z = " + request.getObjX() + "x + " + request.getObjY() + "y evaluada en todos los vértices factibles.");
+        steps.add("Solución óptima encontrada: Z = " + bestValue + " en el punto (" + bestPoint.getX() + ", " + bestPoint.getY() + ").");
 
         response.setSteps(steps);
         return response;

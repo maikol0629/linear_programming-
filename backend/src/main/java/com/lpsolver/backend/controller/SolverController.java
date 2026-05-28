@@ -47,14 +47,14 @@ public class SolverController {
         try {
             SimplexResponse simplexResponse = simplexSolverService.solve(request);
             if (!"OPTIMAL".equals(simplexResponse.getStatus())) {
-                return ResponseEntity.badRequest().body("Sensitivity analysis requires an optimal solution. Current status: " + simplexResponse.getStatus());
+                return ResponseEntity.badRequest().body("El análisis de sensibilidad requiere una solución óptima. Estado actual: " + simplexResponse.getStatus());
             }
             SensitivityAnalysis analysis = sensitivityAnalysisService.analyzeSensitivity(simplexResponse, request);
             return ResponseEntity.ok(analysis);
         } catch (IllegalArgumentException | IllegalStateException ex) {
             return ResponseEntity.badRequest().body(ex.getMessage());
         } catch (Exception ex) {
-            return ResponseEntity.status(500).body("Error analyzing sensitivity: " + ex.getMessage());
+            return ResponseEntity.status(500).body("Error al analizar sensibilidad: " + ex.getMessage());
         }
     }
 
@@ -63,14 +63,14 @@ public class SolverController {
         try {
             SolutionResponse graphicalResponse = graphicalSolverService.solve(request);
             if (!"OPTIMAL".equals(graphicalResponse.getStatus())) {
-                return ResponseEntity.badRequest().body("Sensitivity analysis requires an optimal solution. Current status: " + graphicalResponse.getStatus());
+                return ResponseEntity.badRequest().body("El análisis de sensibilidad requiere una solución óptima. Estado actual: " + graphicalResponse.getStatus());
             }
             SensitivityAnalysis analysis = graphicalSensitivityAnalysisService.analyzeSensitivity(request, graphicalResponse);
             return ResponseEntity.ok(analysis);
         } catch (IllegalArgumentException | IllegalStateException ex) {
             return ResponseEntity.badRequest().body(ex.getMessage());
         } catch (Exception ex) {
-            return ResponseEntity.status(500).body("Error analyzing graphical sensitivity: " + ex.getMessage());
+            return ResponseEntity.status(500).body("Error al analizar sensibilidad gráfica: " + ex.getMessage());
         }
     }
 }
